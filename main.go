@@ -1,16 +1,14 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-)
-
-const (
-	serverAddr = ":7540"
+	"github.com/joho/godotenv"
 )
 
 
@@ -33,7 +31,18 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 	})
 }
 
+func getEnv(envFile string) string {
+	err := godotenv.Load(envFile)
+	if err != nil {
+		log.Fatalf("Dont load env: %S", err)
+	}
+
+	todoPort := os.Getenv("TODO_PORT")
+	return todoPort
+}
+
 func main() {
+	
 	r := chi.NewRouter()
 	
 	fs := http.FileServer(http.Dir("web"))
@@ -43,5 +52,6 @@ func main() {
 	filesDir := http.Dir(filepath.Join(workDir, "web"))
 	FileServer(r, "/", filesDir)
 	
-	http.ListenAndServe(serverAddr, r)
+	port := getEnv(".env")
+	http.ListenAndServe(":" + port, r)
 }
