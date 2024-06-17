@@ -39,48 +39,74 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	switch {
 	case role == "d":
 		if len(daysRepeat) != 1 {
-			err := errors.New("does not match the rules format")
+			err := errors.New("does not match the rules format for days")
 			return "", err
 		}
 		nextDateTask, err := nextDayCalc(now, startDate, daysRepeat)
 		if err != nil {
 			return "", err
 		}
-		resultDate, err := nextDateTask.Format(dateFormat)
+		resultDate := nextDateTask.Format(dateFormat)
 		if err != nil {
 			return "", nil
 		}
 		return resultDate, nil
 
-	// 	result = dateFormater(now, t, "20060102")
-	// case role == "y":
-	// 	result = dateFormater(now, t, "20060102")
-	// case role == "w" && 1 <= t && t <= 7:
-	// 	parseDay(repeat)
+	
+	case role == "y":
+	 	if len(repeat) != 1 {
+			err := errors.New("does not match the rules format for year")
+			return "", err
+		}
+
+		if !startDate.After(now) {
+			nextYearTask := nextYearCalc(now, startDate)
+			return nextYearTask.Format(dateFormat), nil
+		}
+
+		return startDate.Format(dateFormat), nil
+
+	case role == "w":
+		if len(daysRepeat) < 1 || len(daysRepeat)  > 7 {
+			err := errors.New("does not match the rules format for week: lenght repeat rule more 7")
+				return "", err
+		}
+		addDay, err :=	nextDayWeek(daysRepeat, int(now.Weekday()))
+		if err != nil {
+			return "", err
+		}
+		nextWeekTask := now.AddDate(0,0,addDay)
+		return nextWeekTask.Format(dateFormat), nil
+		
+	case role == "m":
+
+		return "", nil	
+		
+
+	// 	if len()
 	// 	nextDay, err := nextDayWeek(strings.Split(days, ","), int(now.Weekday()))
 	// 	if err != nil {
 	// 		return "", err
 	// 	}
-	// 	nextDate := now.Local().AddDate(0, 0, nextDay).Format("20060102")
-	// 	return nextDate, nil
+		
 	// case role == "m":
 		
 		
 
 	}
 
-	return result, nil
+	return "", nil
 }
 
-func nextDayCalc(now time.Time, date time.Time, daysRepeat []int) (string, error) {
+func nextDayCalc(now time.Time, date time.Time, daysRepeat []int) (time.Time, error) {
 	dayRepeat := daysRepeat[0]
-	if dayRepeat > 400 {
+	if dayRepeat >= 400 || dayRepeat <= 0 {
 		err := errors.New("the number must not exceed 400")
-		return "", err
+		return time.Time{}, err
 	}
 
 	if dayRepeat == 1 {
-		return now.Format(dateFormat), nil
+		return now, nil
 	}
 
 	diffDays := now.Sub(date).Hours()/24 // result different now and start task date
@@ -90,17 +116,19 @@ func nextDayCalc(now time.Time, date time.Time, daysRepeat []int) (string, error
 		countRepeat := int(diffDays)/dayRepeat
 		dayToNextTask := countRepeat*(dayRepeat+1)
 		resultDate := date.AddDate(0, 0, dayToNextTask)
-		return resultDate.Format(dateFormat), nil
+		return resultDate, nil
 	}
 
-	return now.Format(dateFormat), nil
+	return now, nil
 }
 
-
-func dateFormater(dateFormat time.Time, format string) string {
-	date := dateFormat.Format(format)
-	return date
+func nextYearCalc(now time.Time, startDate time.Time) time.Time {
+	for !startDate.After(now) {
+		startDate = startDate.AddDate(1, 0, 0)
+	}
+	return startDate
 }
+
 
 func parseRepeat(dayRepeat string) (string, []int, error) {
 	var formatDays []int
@@ -109,35 +137,43 @@ func parseRepeat(dayRepeat string) (string, []int, error) {
 	for _, day := range daysList {
 		day, err := strconv.Atoi(day)
 		if err != nil {
-			return "", "", err
+			return "", nil, err
 		}
 		formatDays = append(formatDays, day)
 	}
 	return role, formatDays, nil
 }
 
-func nextDayWeek(days []string, nowDay int) (int, error) {
-	var result int
-	var previousDay int
-	for i, day := range days {
-		changeDay, err := strconv.Atoi(day)
-		if err != nil {
+func nextDayWeek(days []int, nowDay int) (int, error) {
+	for _, day := range days {
+		if day < 1 || day > 7 {
+			err := errors.New("does not match the rules format for week: day is incorrect out of range")
 			return 0, err
 		}
-		
-		if nowDay > changeDay {
-			result = 7 - nowDay + changeDay
+	}
+	
+
+	var result int
+	var previousDay int
+	if days[0] == nowDay {
+		return nowDay, nil
+	}
+
+	for i, day := range days {
+				
+		if nowDay > day {
+			result = 7 - nowDay + day
 		} else {
-			result = nowDay - changeDay
+			result = day - nowDay
 		}
 		
 		if i == 0 {
 			previousDay = result
 			continue
-		} else {
-			if previousDay < result {
-				previousDay = result
-			}
+		} 
+		
+		if previousDay > result {
+			previousDay = result
 		}
 	}
 	
