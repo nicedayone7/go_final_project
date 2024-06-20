@@ -7,6 +7,16 @@ import (
 )
 
 func nextDayCalc(now time.Time, date time.Time, dayRepeat int) (time.Time, error) {
+	var resultDate time.Time
+	if dayRepeat == 1 {
+		if date.After(now) {
+			resultDate = date.AddDate(0, 0, 1)
+		} else {
+			resultDate = now.AddDate(0, 0, 1)
+		}
+		return resultDate, nil
+	}
+
 	diffDays := now.Sub(date).Hours()/24 // result different now and start task date
 	remainingDays := int(diffDays)%dayRepeat
 	
@@ -16,13 +26,16 @@ func nextDayCalc(now time.Time, date time.Time, dayRepeat int) (time.Time, error
 		resultDate := date.AddDate(0, 0, dayToNextTask)
 		return resultDate, nil
 	}
-
-	return now, nil
+	
+	return resultDate, nil
 }
 
-func nextYearCalc(now time.Time, startDate time.Time) time.Time {
-	for !startDate.After(now) {
+func nextYearCalc(now time.Time,startDate time.Time) time.Time {
+	for {
 		startDate = startDate.AddDate(1, 0, 0)
+		if startDate.After(now) {
+			break
+		}
 	}
 	return startDate
 }

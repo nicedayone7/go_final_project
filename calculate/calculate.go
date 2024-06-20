@@ -81,6 +81,6 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		return nextMonthTask.Format(dateFormat), nil
 			
 	default:
-		return "", nil
+		return "not found next date", nil
 	}
 }
