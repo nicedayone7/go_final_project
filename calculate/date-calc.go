@@ -67,7 +67,7 @@ func nextDayWeekCalc(days []int, nowDay int) (int, error) {
 	return result, nil
 }
 
-func nextDayMonth(now time.Time, rule string, parts []string, sortDays, sortMonths []int) (time.Time, error) {
+func nextDayMonth(now time.Time, parts []string, sortDays, sortMonths []int) (time.Time, error) {
 	if len(parts) == 2 {
 		for _, day := range sortDays {
 			if now.Day() < day {

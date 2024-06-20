@@ -74,7 +74,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		nextMonthTask, err := nextDayMonth(now, repeat, parts, daysMonth, months)
+		nextMonthTask, err := nextDayMonth(now, parts, daysMonth, months)
 		if err != nil {
 			return "", err
 		}
