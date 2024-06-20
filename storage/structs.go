@@ -10,5 +10,5 @@ type Task struct {
 	date string
 	title string
 	comment string
-	repeat int32
+	repeat string
 }
