@@ -57,11 +57,11 @@ func nextDayWeekCalc(days []int, nowDay int) (int, error) {
 	var previousDay int
 
 	if days[0] == nowDay {
-		return 0, nil
+		return 7, nil
 	}
 
 	for i, day := range days {		
-		if nowDay > day {
+		if nowDay >= day {
 			result = 7 - nowDay + day
 		} else {
 			result = day - nowDay
@@ -77,7 +77,7 @@ func nextDayWeekCalc(days []int, nowDay int) (int, error) {
 		}
 	}
 	
-	return result, nil
+	return previousDay, nil
 }
 
 func nextDayMonth(now time.Time, parts []string, sortDays, sortMonths []int) (time.Time, error) {
