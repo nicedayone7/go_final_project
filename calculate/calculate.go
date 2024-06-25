@@ -61,24 +61,43 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		return nextWeekTask.Format(dateFormat), nil
 		
 	case ruleLetter == "m":
+		if now.Before(startDate) {
+			now = startDate
+		}
 		parts := strings.Split(repeat, " ")
 		if len(parts) > 3 || len(parts) < 2 {
 			err := errors.New("invalid input data value")
 			return "", err
 		}
-		months, err := normilizeMonths(repeat)
-		if err != nil {
-			return "", err
+		if len(parts) == 2 {
+			normilizeDays, err := normilizeDaysForMonth(now, parts[1])
+			if err != nil {
+				return "", err
+			}
+			nextMonthTask, err := nextDayWithDays(now, normilizeDays)
+			if err != nil {
+				return "", err
+			}
+			return nextMonthTask.Format(dateFormat), nil
 		}
-		daysMonth, err := normilizeDaysForMonth(now, repeat)
-		if err != nil {
-			return "", err
+	
+		if len(parts) == 3 {
+			normilizeDays, err := normilizeDaysForMonth(now, parts[1])
+			if err != nil {
+				return "", err
+			}
+			months, err := normilizeMonths(parts[2])
+			if err != nil {
+				return "", err
+			}
+			nextMonthTask, err := nextDayWithDaysMonths(now, normilizeDays, months)
+			if err != nil {
+				return "", err
+			}
+			return nextMonthTask.Format(dateFormat), nil
 		}
-		nextMonthTask, err := nextDayMonth(now, parts, daysMonth, months)
-		if err != nil {
-			return "", err
-		}
-		return nextMonthTask.Format(dateFormat), nil
+
+		return "", nil
 			
 	default:
 		return "not found next date", nil

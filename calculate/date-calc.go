@@ -80,32 +80,44 @@ func nextDayWeekCalc(days []int, nowDay int) (int, error) {
 	return previousDay, nil
 }
 
-func nextDayMonth(now time.Time, parts []string, sortDays, sortMonths []int) (time.Time, error) {
-	if len(parts) == 2 {
-		for _, day := range sortDays {
-			if now.Day() < day {
-				nextDateTask := time.Date(now.Year(), now.Month(), day, 0,0,0,0,time.UTC)
-				return nextDateTask, nil
-			}
-		}
-		
-		nextDateTask := time.Date(now.Year(), now.Month()+1, sortDays[0], 0, 0, 0, 0, time.UTC)
+func nextDayWithDays(now time.Time, sortDays []int ) (time.Time, error) {
+	if sortDays[0] == 31 {
+		specMonth := lastDayMonthCheck(now)
+		nextDateTask := time.Date(now.Year(), time.Month(specMonth), sortDays[0], 0,0,0,0,time.UTC)
 		return nextDateTask, nil
 	}
 
-	if len(parts) == 3 {
-		for _, month := range sortMonths {
-			for _, day := range sortDays {
-				findDate := time.Date(now.Year(), time.Month(month), day, 0, 0, 0, 0, time.UTC)
-				if findDate.After(now) {
-					return findDate, nil
-				}			
-			}
+	for _, day := range sortDays {
+		if now.Day() < day {
+			nextDateTask := time.Date(now.Year(), now.Month(), day, 0,0,0,0,time.UTC)
+			return nextDateTask, nil
 		}
-		findDate := time.Date(now.Year()+1, time.Month(sortMonths[0]), sortDays[0], 0, 0, 0, 0, time.UTC)
-		return findDate, nil
 	}
+	nextDateTask := time.Date(now.Year(), now.Month()+1, sortDays[0], 0, 0, 0, 0, time.UTC)
+	return nextDateTask, nil
+}
 
-	err := errors.New("fail to find next date task")
-	return time.Time{}, err	
+
+func nextDayWithDaysMonths(now time.Time, sortDays, sortMonths []int) (time.Time, error) {
+
+	for _, month := range sortMonths {
+		for _, day := range sortDays {
+			findDate := time.Date(now.Year(), time.Month(month), day, 0, 0, 0, 0, time.UTC)
+			if findDate.After(now) {
+				return findDate, nil
+			}			
+		}
+	}
+	findDate := time.Date(now.Year()+1, time.Month(sortMonths[0]), sortDays[0], 0, 0, 0, 0, time.UTC)
+	return findDate, nil
+}
+
+func lastDayMonthCheck(date time.Time) int {
+	specMonths := [7]int{1, 3, 5, 7, 8, 10, 12}
+	for _, month := range specMonths {
+		if int(date.Month()) <= month {
+			return month
+		}
+	}
+	return 0
 }

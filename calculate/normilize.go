@@ -62,10 +62,28 @@ func normilizeDaysWeek(rule string) ([]int, error) {
 	return week, nil
 }
 
-func normilizeDaysForMonth(now time.Time,rule string) ([]int, error) {
+func normilizeMonths(rule string) ([]int, error) {
+	var monthsForSort []int
+	months := strings.Split(rule, ",")
+	for _, m := range months {
+		month, err := strconv.Atoi(m)
+		if err != nil {
+			return nil, err
+		}
+		if month > 12 || month < 1 {
+			err := errors.New("invalid input data value")
+			return nil, err
+		}
+		monthsForSort = append(monthsForSort, month)	
+	}
+	sort.Ints(monthsForSort)
+
+	return monthsForSort, nil
+}
+
+func normilizeDaysForMonth(now time.Time, rule string) ([]int, error) {
 	var daysForSort []int
-	part := strings.Split(rule, " ")[1]
-	daysMounth := strings.Split(part, ",")
+	daysMounth := strings.Split(rule, ",")
 	for _, dayStr := range daysMounth {
 		day, err := strconv.Atoi(dayStr)
 		if err != nil {
@@ -86,25 +104,5 @@ func normilizeDaysForMonth(now time.Time,rule string) ([]int, error) {
 	}
 	sort.Ints(daysForSort)
 	return daysForSort, nil
-}
-
-func normilizeMonths(rule string) ([]int, error) {
-	var monthsForSort []int
-	part := strings.Split(rule, " ")[2]
-	months := strings.Split(part, ",")
-	for _, m := range months {
-		month, err := strconv.Atoi(m)
-		if err != nil {
-			return nil, err
-		}
-		if month > 12 || month < 1 {
-			err := errors.New("invalid input data value")
-			return nil, err
-		}
-		monthsForSort = append(monthsForSort, month)	
-	}
-	sort.Ints(monthsForSort)
-
-	return monthsForSort, nil
 }
 
