@@ -2,11 +2,12 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
-	
+
 	"go_final_project/pkg/models"
 
 	_ "modernc.org/sqlite"
@@ -43,7 +44,7 @@ func ExistingStorage(path string) bool {
 }
 
 func CreateStorage(storagePath string) error {
-	_, err := os.Create(filepath.Join(storagePath, storageFilename))
+	_, err := os.Create(storagePath)
 	if err != nil {
 		log.Fatalf("Dont create db file: %s", err)
 	}
@@ -60,6 +61,7 @@ func CreateTable(storageFilename string) error {
 	if _, err = db.Exec(create); err != nil {
 		log.Fatalf("Dont create table in database: %s", err)
 	}
+	fmt.Println(create)
 	return nil
 }
 
@@ -98,4 +100,30 @@ func AddTaskStorage(db *sql.DB,task models.Task) (int, error) {
 	}
 
 	return int(id), nil
+}
+
+func GetAllTasks(db *sql.DB) ([]models.Task, error) {
+	results, err := db.Query("SELECT * FROM scheduler;")
+
+	if err != nil {
+		return nil, err
+	}
+
+	var tasks = make([]models.Task, 0)
+	for results.Next() {
+		i := 0
+		var task models.Task
+		err = results.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+		if err != nil {
+			return nil, err
+		}
+		if i > 10 {
+			tasks = append(tasks, task)
+			break
+		}
+		tasks = append(tasks, task)
+		i += 1
+	}
+
+	return tasks, nil
 }
