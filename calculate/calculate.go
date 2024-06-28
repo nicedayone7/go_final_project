@@ -97,9 +97,10 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			return nextMonthTask.Format(dateFormat), nil
 		}
 
-		return "", nil
+		return "", err
 			
 	default:
-		return "not found next date", nil
+		err := errors.New("not found next date")
+		return "", err
 	}
 }

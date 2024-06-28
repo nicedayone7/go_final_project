@@ -12,7 +12,7 @@ func nextDayCalc(now time.Time, date time.Time, dayRepeat int) (time.Time, error
 		if date.After(now) {
 			resultDate = date.AddDate(0, 0, 1)
 		} else {
-			resultDate = now.AddDate(0, 0, 1)
+			resultDate = now
 		}
 		return resultDate, nil
 	}
@@ -99,7 +99,6 @@ func nextDayWithDays(now time.Time, sortDays []int ) (time.Time, error) {
 
 
 func nextDayWithDaysMonths(now time.Time, sortDays, sortMonths []int) (time.Time, error) {
-
 	for _, month := range sortMonths {
 		for _, day := range sortDays {
 			findDate := time.Date(now.Year(), time.Month(month), day, 0, 0, 0, 0, time.UTC)

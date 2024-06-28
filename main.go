@@ -1,24 +1,25 @@
 package main
 
 import (
-	"fmt"
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	calc "go_final_project/calculate"
-	st "go_final_project/storage"
+	"go_final_project/pkg/handlers"
+	"go_final_project/pkg/storage"
 
 	"github.com/go-chi/chi/v5"
+
 	// "github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 )
 
 const (
-	dateFormat = "20060102"
+	dateFormat      = "20060102"
+	storageFilename = "scheduler.db"
 )
 
 func FileServer(r chi.Router, path string, root http.FileSystem) {
@@ -40,25 +41,6 @@ func FileServer(r chi.Router, path string, root http.FileSystem) {
 	})
 }
 
-func requestNextDate(w http.ResponseWriter, r *http.Request) {
-	now := r.FormValue("now")
-	date := r.FormValue("date")
-	repeat := r.FormValue("repeat")
-	fmt.Println(date)
-	fmt.Println(now, date,repeat)
-	
-	nowTime, err := time.Parse(dateFormat, now)
-	if err != nil {
-		fmt.Fprintf(w, "Error parse date")
-	}
-
-	nextDateTask, err := calc.NextDate(nowTime, date, repeat)
-	if err != nil {
-		fmt.Fprintf(w, "%v", err)
-	}
-	w.Write([]byte(nextDateTask))
-}
-
 func getEnv(envFile string) (string, string) {
 	err := godotenv.Load(envFile)
 	if err != nil {
@@ -70,29 +52,38 @@ func getEnv(envFile string) (string, string) {
 	return todoPort, dbPath
 }
 
-func main() {
-	
+func handleRequests(DB *sql.DB, port, workDir string) {
+	h := handlers.New(DB)
 	r := chi.NewRouter()
-	// r.Use(middleware.Logger)
-	
-	fs := http.FileServer(http.Dir("web"))
-	r.Get("/api/nextdate", requestNextDate)
-	r.Handle("/web/*", http.StripPrefix("/web/", fs))
 
-	workDir, _ := os.Getwd()
+	fs := http.FileServer(http.Dir("web"))
+	r.Get("/api/nextdate", h.RequestNextDate)
+	r.Post("/api/task", h.AddTask)
+	r.Handle("/web/*", http.StripPrefix("/web/", fs))
 	filesDir := http.Dir(filepath.Join(workDir, "web"))
 	FileServer(r, "/", filesDir)
-	
-	port, dbPath := getEnv(".env")
+	http.ListenAndServe(":" + port, r)
+}
 
-	install := st.ExistingStorage(dbPath)
-	if install {
-		_, err := st.CreateStorage(dbPath)
-		if err != nil {
-			log.Fatalf("Dont create db: %s", err) 
+func main() {
+	port, dbPath := getEnv(".env")
+	workDir, _ := os.Getwd()
+
+	if !storage.ExistingStorage(workDir) {
+		if err := storage.CreateStorage(dbPath); err != nil {
+			log.Fatalf("Dont create db: %s", err)
+		}
+		if err := storage.CreateTable(storageFilename); err != nil {
+			log.Fatalf("Dont create table: %s", err)
 		}
 	}
-	http.ListenAndServe(":" + port, r)
 
-	
+	db, err := storage.Connect(storageFilename)
+	defer db.Close()
+	if err != nil {
+		log.Fatalf("Dont connect database: %s", err)
+	}
+
+	handleRequests(db, port, workDir)
+	// r.Use(middleware.Logger)
 }

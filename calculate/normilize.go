@@ -40,6 +40,11 @@ func normilizeYear(rule string) (error) {
 func normilizeDaysWeek(rule string) ([]int, error) {
 	var week []int
 	parts := strings.Split(rule, " ")
+	if len(parts) != 2 {
+		err := errors.New("invalid input data value")
+		return nil, err
+	}
+	
 	daysWeek := strings.Split(parts[1], ",")
 
 	if len(daysWeek) < 1 || len(daysWeek) > 7 {
