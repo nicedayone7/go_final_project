@@ -9,9 +9,10 @@ import (
 	"time"
 
 	calc "go_final_project/calculate"
+	chk "go_final_project/pkg/checker"
 	"go_final_project/pkg/models"
 	"go_final_project/pkg/storage"
-	chk "go_final_project/pkg/checker"
+	"go_final_project/pkg/wraper"
 )
 
 const dateFormat = "20060102"
@@ -60,17 +61,15 @@ func (h handler) AddTask(w http.ResponseWriter, r *http.Request) {
 	if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	} 
-	fmt.Println(task)
 
 	task, err = chk.Task(task)
-	
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8") 
+
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		sender["error"] = err.Error()
 		sendByte, _ := json.Marshal(sender)
 		w.Write(sendByte)
-		fmt.Println(sender)
 		return
 	}
 		
@@ -80,13 +79,37 @@ func (h handler) AddTask(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		sendByte, _ := json.Marshal(sender)
 		w.Write(sendByte)
-		fmt.Println(sender)
 		return
 	}
 
 	sender["id"] = fmt.Sprintf("%d", id)
 	sendByte, _ := json.Marshal(sender)
 	w.WriteHeader(http.StatusOK)
-	fmt.Println(sender)
+	w.Write(sendByte)
+}
+
+func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
+	tasks, err := storage.GetAllTasks(h.DB)
+	fmt.Println(tasks)
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err != nil {
+		sender := map[string]string{"error": err.Error()}
+		sendByte, _ := json.Marshal(sender)
+		w.Write(sendByte)
+		return
+	}
+	tasks = wraper.SortedTasks(tasks)
+
+	result := make(map[string][]models.Task)
+	result["tasks"] = tasks
+	sendByte, err := json.Marshal(result)
+	if err != nil {
+		sender := map[string]string{"error": err.Error()}
+		sendByte, _ := json.Marshal(sender)
+		w.Write(sendByte)
+		return
+	}
+
 	w.Write(sendByte)
 }
