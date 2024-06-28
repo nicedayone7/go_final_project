@@ -13,10 +13,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-type SchedulerStorage struct {
-	db *sql.DB
-}
-
 const (
 	storageFilename        = "scheduler.db"
 	create          string = `
@@ -28,8 +24,6 @@ comment VARCHAR(1024) NOT NULL,
 repeat VARCHAR(128) NOT NULL
 );`
 )
-
-
 
 func ExistingStorage(path string) bool {
 	storageFile := filepath.Join(filepath.Dir(path), storageFilename)
