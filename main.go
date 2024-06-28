@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -59,6 +60,7 @@ func handleRequests(DB *sql.DB, port, workDir string) {
 	fs := http.FileServer(http.Dir("web"))
 	r.Get("/api/nextdate", h.RequestNextDate)
 	r.Post("/api/task", h.AddTask)
+	r.Get("/api/tasks", h.GetTasks)
 	r.Handle("/web/*", http.StripPrefix("/web/", fs))
 	filesDir := http.Dir(filepath.Join(workDir, "web"))
 	FileServer(r, "/", filesDir)
@@ -68,18 +70,17 @@ func handleRequests(DB *sql.DB, port, workDir string) {
 func main() {
 	port, dbPath := getEnv(".env")
 	workDir, _ := os.Getwd()
-
-	if !storage.ExistingStorage(workDir) {
+	fmt.Println(dbPath, workDir)
+	if !storage.ExistingStorage(dbPath) {
 		if err := storage.CreateStorage(dbPath); err != nil {
 			log.Fatalf("Dont create db: %s", err)
 		}
-		if err := storage.CreateTable(storageFilename); err != nil {
+		if err := storage.CreateTable(dbPath); err != nil {
 			log.Fatalf("Dont create table: %s", err)
 		}
 	}
 
-	db, err := storage.Connect(storageFilename)
-	defer db.Close()
+	db, err := storage.Connect(dbPath)
 	if err != nil {
 		log.Fatalf("Dont connect database: %s", err)
 	}
