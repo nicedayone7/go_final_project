@@ -13,32 +13,28 @@ func Task(task models.Task) (models.Task, error) {
 
 	if task.Title == "" {
 		err := errors.New("empty title fail write task")
-		fmt.Println(err)
-		return models.Task{}, err
-	}
-
-	_, err := time.Parse("20060102", task.Date)
-	if err != nil {
-		fmt.Println(err)
 		return models.Task{}, err
 	}
 
 	if task.Date == "" || (task.Date == "" && task.Repeat == "") {
-		task.Date = time.Now().String()
+		task.Date = time.Now().Format("20060102")
 		return task, nil
 	} 
 
-	date, _ := time.Parse("20060102", task.Date)
+	date, err := time.Parse("20060102", task.Date)
+	if err != nil {
+		return models.Task{}, err
+	}
 
 	if date.Before(time.Now()) {
+		
 		if task.Repeat == "" {
-			task.Date = time.Now().String()
+			task.Date = time.Now().Format("20060102")
 			return task, nil
 		}
 
 		task.Date, err = calc.NextDate(time.Now(), task.Date, task.Repeat)
 		if err != nil {
-			fmt.Println(err)
 			return models.Task{}, err
 		}
 		return task, nil
