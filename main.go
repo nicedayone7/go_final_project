@@ -62,6 +62,7 @@ func handleRequests(DB *sql.DB, port, workDir string) {
 	r.Post("/api/task", h.AddTask)
 	r.Get("/api/tasks", h.GetTasks)
 	r.Get("/api/task", h.GetTaskID)
+	r.Put("/api/task", h.PutTask)
 	r.Handle("/web/*", http.StripPrefix("/web/", fs))
 	filesDir := http.Dir(filepath.Join(workDir, "web"))
 	FileServer(r, "/", filesDir)

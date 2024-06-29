@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -45,49 +44,27 @@ func (h handler) RequestNextDate(w http.ResponseWriter, r *http.Request) {
 
 func (h handler) AddTask(w http.ResponseWriter, r *http.Request) {
 	var task models.Task
-	var buf bytes.Buffer
 
-	sender := map[string]string{
-		"id": "",
-		"error": "",
-	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	decoder := json.NewDecoder(r.Body)
+    defer r.Body.Close()
+	if err := decoder.Decode(&task); err != nil {
+        http.Error(w, "Error decoding JSON: "+err.Error(), http.StatusBadRequest)
+        return
+    }
 
-	_, err := buf.ReadFrom(r.Body)
-	defer r.Body.Close()
+	task, err := chk.Task(task)
+    if err != nil {
+        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        return
+    }
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-
-	if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	} 
-
-	task, err = chk.Task(task)
-	 
-
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		sender["error"] = err.Error()
-		sendByte, _ := json.Marshal(sender)
-		w.Write(sendByte)
-		return
-	}
-		
 	id, err := storage.AddTaskStorage(h.DB, task)
-	if err != nil {
-		sender["error"] = err.Error()
-		w.WriteHeader(http.StatusBadRequest)
-		sendByte, _ := json.Marshal(sender)
-		w.Write(sendByte)
-		return
-	}
-
-	sender["id"] = fmt.Sprintf("%d", id)
-	sendByte, _ := json.Marshal(sender)
-	w.WriteHeader(http.StatusOK)
-	w.Write(sendByte)
+    if err != nil {
+        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+	
+	sendJSONResponse(w, map[string]interface{}{"id": strconv.Itoa(id)}, http.StatusOK)
 }
 
 func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +80,7 @@ func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				sender := map[string]string{"error": err.Error()}
 				sendByte, _ := json.Marshal(sender)
-				w.Write(sendByte)
+				w.Write([]byte(sendByte))
 				return
 			}
 			result["tasks"] = tasks
@@ -111,17 +88,17 @@ func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				sender := map[string]string{"error": err.Error()}
 				sendByte, _ := json.Marshal(sender)
-				w.Write(sendByte)
+				w.Write([]byte(sendByte))
 				return
 			}
-			w.Write(sendByte)
+			w.Write([]byte(sendByte))
 			return
 		}
 		tasks, err :=storage.SearchTaskToWord(h.DB, search)
 		if err != nil {
 			sender := map[string]string{"error": err.Error()}
 			sendByte, _ := json.Marshal(sender)
-			w.Write(sendByte)
+			w.Write([]byte(sendByte))
 			return
 		}
 		result["tasks"] = tasks
@@ -129,10 +106,10 @@ func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			sender := map[string]string{"error": err.Error()}
 			sendByte, _ := json.Marshal(sender)
-			w.Write(sendByte)
+			w.Write([]byte(sendByte))
 			return
 		}
-		w.Write(sendByte)
+		w.Write([]byte(sendByte))
 		return
 	}
 
@@ -140,7 +117,7 @@ func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		sender := map[string]string{"error": err.Error()}
 		sendByte, _ := json.Marshal(sender)
-		w.Write(sendByte)
+		w.Write([]byte(sendByte))
 		return
 	}
 	
@@ -149,38 +126,94 @@ func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		sender := map[string]string{"error": err.Error()}
 		sendByte, _ := json.Marshal(sender)
-		w.Write(sendByte)
+		w.Write([]byte(sendByte))
 		return
 	}
 
-	w.Write(sendByte)
+	w.Write([]byte(sendByte))
 }
 
 func (h handler) GetTaskID(w http.ResponseWriter, r *http.Request) {
-	idParam := r.URL.Query().Get("id")
-	
-	if idParam == "" {
-        http.Error(w, "Missing id parameter", http.StatusBadRequest)
+    sender := make(map[string]interface{})
+
+    idParam := r.FormValue("id")
+
+    if idParam == "" {
+        sender["error"] = "Не указан идентификатор"
+        sendJSONResponse(w, sender, http.StatusBadRequest)
         return
     }
 
-	id, err := strconv.Atoi(idParam)
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        sender["error"] = "Неверный формат идентификатора"
+        sendJSONResponse(w, sender, http.StatusBadRequest)
+        return
+    }
+
+    task, err := storage.GetTaskByID(h.DB, id)
+    if err != nil {
+        sender["error"] = "Задача не найдена"
+        sendJSONResponse(w, sender, http.StatusNotFound)
+        return
+    }
+	byteSend, err := json.Marshal(task)
 	if err != nil {
-		http.Error(w, "Invalid id parameter", http.StatusBadRequest)
+		fmt.Println(task, err)
+	}
+	w.Write(byteSend)
+}
+
+func (h handler) PutTask(w http.ResponseWriter, r *http.Request) {
+	var task models.Task
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+
+	if err := decoder.Decode(&task); err != nil {
+		http.Error(w, "Error decoding JSON "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	task, err := storage.GetTaskByID(h.DB ,id)
+	
+	id, err := strconv.Atoi(task.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+	_, err = storage.GetTaskByID(h.DB, id)
+    if err != nil {
+        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+	task, err = chk.Task(task)
+    if err != nil {
+        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+	if err := storage.UpdateTask(h.DB, task); err != nil {
+		sendErrorResponse(w, "Error update on database "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	sendByte, err := json.Marshal(task)
-	if err != nil {
-		http.Error(w, "Failed to marshal JSON", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Write(sendByte)
-	
+	sendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
+}
+
+
+func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
+    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+    w.WriteHeader(statusCode)
+    json.NewEncoder(w).Encode(map[string]interface{}{"error": message})
+}
+
+
+func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
+    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+    w.WriteHeader(statusCode)
+    if err := json.NewEncoder(w).Encode(data); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println()
+        return
+    }
 }

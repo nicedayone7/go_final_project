@@ -9,6 +9,7 @@ import (
 )
 
 func Task(task models.Task) (models.Task, error) {
+	now := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(),0,0,0,0, time.UTC)
 	fmt.Println(task.Date, task.Title, task.Comment, task.Repeat)
 
 	if task.Title == "" {
@@ -22,11 +23,12 @@ func Task(task models.Task) (models.Task, error) {
 	} 
 
 	date, err := time.Parse("20060102", task.Date)
+	fmt.Println(date)
 	if err != nil {
 		return models.Task{}, err
 	}
 
-	if date.Before(time.Now()) {
+	if date.Before(now) {
 		
 		if task.Repeat == "" {
 			task.Date = time.Now().Format("20060102")

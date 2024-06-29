@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -90,7 +91,7 @@ func AddTaskStorage(db *sql.DB,task models.Task) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-
+	fmt.Println(id)
 	return int(id), nil
 }
 
@@ -162,4 +163,18 @@ func GetTaskByID(db *sql.DB, id int) (models.Task, error) {
 	}
 
 	return task, nil
+}
+
+func UpdateTask(db *sql.DB, task models.Task) error {
+	_, err := db.Exec("UPDATE scheduler SET date = :date, title = :title, comment = :comment, repeat = :repeat WHERE id = :id",
+	sql.Named("date", task.Date),
+	sql.Named("title", task.Title),
+	sql.Named("comment", task.Comment),
+	sql.Named("repeat", task.Repeat),
+	sql.Named("id", task.ID))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
