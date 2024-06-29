@@ -178,3 +178,13 @@ func UpdateTask(db *sql.DB, task models.Task) error {
 
 	return nil
 }
+
+func DeleteTask(db *sql.DB, id int) error {
+	fmt.Println("in del:", id)
+	_, err := db.Exec("DELETE FROM scheduler WHERE id = :id", sql.Named("id", id))
+	if err != nil {
+		return err
+	}
+	fmt.Println("del done:", id)
+	return nil
+}

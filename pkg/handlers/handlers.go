@@ -200,6 +200,76 @@ func (h handler) PutTask(w http.ResponseWriter, r *http.Request) {
 	sendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
 }
 
+func (h handler) TaskDone(w http.ResponseWriter, r *http.Request) {
+	var task models.Task
+	sender := make(map[string]interface{})
+	idParam := r.FormValue("id")
+
+    if idParam == "" {
+        sender["error"] = "Не указан идентификатор"
+        sendJSONResponse(w, sender, http.StatusBadRequest)
+        return
+    }
+
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        sender["error"] = "Неверный формат идентификатора"
+        sendJSONResponse(w, sender, http.StatusBadRequest)
+        return
+    }
+
+    task, err = storage.GetTaskByID(h.DB, id)
+    if err != nil {
+        sender["error"] = "Задача не найдена"
+        sendJSONResponse(w, sender, http.StatusNotFound)
+        return
+    }
+
+	if task.Repeat != "" {
+		task.Date, err = calc.NextDate(time.Now(), task.Date, task.Repeat)
+		if err != nil {
+			sendErrorResponse(w, "Error calculate next date " + err.Error(), http.StatusBadRequest)
+			return
+		}
+		err = storage.UpdateTask(h.DB, task)
+		if err != nil {
+			sendErrorResponse(w, "Error update task in database " + err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else {
+		if err := storage.DeleteTask(h.DB, id); err != nil {
+			sendErrorResponse(w, "Error delete task in database " + err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	sendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
+}
+
+
+func (h handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	sender := make(map[string]interface{})
+	idParam := r.FormValue("id")
+
+    if idParam == "" {
+        sender["error"] = "Не указан идентификатор"
+        sendJSONResponse(w, sender, http.StatusBadRequest)
+        return
+    }
+
+    id, err := strconv.Atoi(idParam)
+    if err != nil {
+        sender["error"] = "Неверный формат идентификатора"
+        sendJSONResponse(w, sender, http.StatusBadRequest)
+        return
+    }
+
+	if err = storage.DeleteTask(h.DB, id); err != nil {
+		sender["error"] = "Error delete DB"
+        sendJSONResponse(w, sender, http.StatusBadRequest)
+        return
+	}
+	sendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
+}
 
 func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
     w.Header().Set("Content-Type", "application/json; charset=UTF-8")
