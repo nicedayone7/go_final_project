@@ -2,7 +2,6 @@ package storage
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -55,7 +54,6 @@ func CreateTable(storageFilename string) error {
 	if _, err = db.Exec(create); err != nil {
 		log.Fatalf("Dont create table in database: %s", err)
 	}
-	fmt.Println(create)
 	return nil
 }
 
@@ -97,26 +95,65 @@ func AddTaskStorage(db *sql.DB,task models.Task) (int, error) {
 }
 
 func GetAllTasks(db *sql.DB) ([]models.Task, error) {
-	results, err := db.Query("SELECT * FROM scheduler;")
+	rows, err := db.Query("SELECT * FROM scheduler ORDER BY date LIMIT :limit;", sql.Named("limit", "10"))
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tasks = make([]models.Task, 0)
+	for rows.Next() {
+		var task models.Task
+		err = rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
+	}
+
+	return tasks, nil
+}
+
+func SearchTaskToWord(db *sql.DB, search string) ([]models.Task, error) {
+	query := "SELECT * FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date LIMIT :limit"
+    rows, err := db.Query(query, sql.Named("search", "%"+search+"%"), sql.Named("limit", "10"))
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
 	if err != nil {
 		return nil, err
 	}
 
+	defer rows.Close()
+
 	var tasks = make([]models.Task, 0)
-	for results.Next() {
-		i := 0
+	for rows.Next() {
 		var task models.Task
-		err = results.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+		err = rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 		if err != nil {
 			return nil, err
 		}
-		if i > 10 {
-			tasks = append(tasks, task)
-			break
-		}
 		tasks = append(tasks, task)
-		i += 1
+	}
+	return tasks, nil
+}
+
+func SearchTaskToDate(db *sql.DB, dateToSearch string) ([]models.Task, error) {
+	rows, err := db.Query("SELECT * FROM scheduler WHERE date = :date LIMIT :limit", sql.Named("date", dateToSearch), sql.Named("limit", "10"))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var tasks = make([]models.Task, 0)
+	for rows.Next() {
+		var task models.Task 
+		err := rows.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+		if err != nil {
+			return nil, err
+		} 
+		tasks = append(tasks, task)
 	}
 
 	return tasks, nil
