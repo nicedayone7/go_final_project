@@ -122,12 +122,6 @@ func SearchTaskToWord(db *sql.DB, search string) ([]models.Task, error) {
     }
     defer rows.Close()
 
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
 	var tasks = make([]models.Task, 0)
 	for rows.Next() {
 		var task models.Task
