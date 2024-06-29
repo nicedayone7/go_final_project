@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	calc "go_final_project/pkg/calculate"
@@ -45,11 +46,12 @@ func (h handler) RequestNextDate(w http.ResponseWriter, r *http.Request) {
 func (h handler) AddTask(w http.ResponseWriter, r *http.Request) {
 	var task models.Task
 	var buf bytes.Buffer
-	
+
 	sender := map[string]string{
 		"id": "",
 		"error": "",
 	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	_, err := buf.ReadFrom(r.Body)
 	defer r.Body.Close()
@@ -63,7 +65,7 @@ func (h handler) AddTask(w http.ResponseWriter, r *http.Request) {
 	} 
 
 	task, err = chk.Task(task)
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8") 
+	 
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -152,4 +154,33 @@ func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(sendByte)
+}
+
+func (h handler) GetTaskID(w http.ResponseWriter, r *http.Request) {
+	idParam := r.URL.Query().Get("id")
+	
+	if idParam == "" {
+        http.Error(w, "Missing id parameter", http.StatusBadRequest)
+        return
+    }
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		http.Error(w, "Invalid id parameter", http.StatusBadRequest)
+		return
+	}
+	task, err := storage.GetTaskByID(h.DB ,id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	sendByte, err := json.Marshal(task)
+	if err != nil {
+		http.Error(w, "Failed to marshal JSON", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Write(sendByte)
+	
 }

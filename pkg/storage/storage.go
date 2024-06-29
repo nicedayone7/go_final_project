@@ -152,3 +152,14 @@ func SearchTaskToDate(db *sql.DB, dateToSearch string) ([]models.Task, error) {
 
 	return tasks, nil
 }
+
+func GetTaskByID(db *sql.DB, id int) (models.Task, error) {
+	var task models.Task 
+	row := db.QueryRow("SELECT * FROM scheduler WHERE id = :id", sql.Named("id", id))
+	err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
+	if err != nil {
+		return models.Task{}, err
+	}
+
+	return task, nil
+}
