@@ -3,7 +3,7 @@ package task
 import (
 	"errors"
 	"fmt"
-	calc "go_final_project/calculate"
+	calc "go_final_project/pkg/calculate"
 	"go_final_project/pkg/models"
 	"time"
 )

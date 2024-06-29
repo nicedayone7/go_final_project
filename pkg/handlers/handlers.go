@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	calc "go_final_project/calculate"
+	calc "go_final_project/pkg/calculate"
 	chk "go_final_project/pkg/checker"
 	"go_final_project/pkg/models"
+	"go_final_project/pkg/normilize"
 	"go_final_project/pkg/storage"
-	"go_final_project/pkg/sorted"
 )
 
 const dateFormat = "20060102"
@@ -89,19 +89,59 @@ func (h handler) AddTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
-	tasks, err := storage.GetAllTasks(h.DB)
-	fmt.Println(tasks)
-
+	search := r.FormValue("search")
+	result := make(map[string][]models.Task)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	if search != "" {
+		dateSearch := normilize.SearchTasks(search)
+		
+		if dateSearch != "" {
+			tasks, err := storage.SearchTaskToDate(h.DB, dateSearch)
+			if err != nil {
+				sender := map[string]string{"error": err.Error()}
+				sendByte, _ := json.Marshal(sender)
+				w.Write(sendByte)
+				return
+			}
+			result["tasks"] = tasks
+			sendByte, err := json.Marshal(result)
+			if err != nil {
+				sender := map[string]string{"error": err.Error()}
+				sendByte, _ := json.Marshal(sender)
+				w.Write(sendByte)
+				return
+			}
+			w.Write(sendByte)
+			return
+		}
+		tasks, err :=storage.SearchTaskToWord(h.DB, search)
+		if err != nil {
+			sender := map[string]string{"error": err.Error()}
+			sendByte, _ := json.Marshal(sender)
+			w.Write(sendByte)
+			return
+		}
+		result["tasks"] = tasks
+		sendByte, err := json.Marshal(result)
+		if err != nil {
+			sender := map[string]string{"error": err.Error()}
+			sendByte, _ := json.Marshal(sender)
+			w.Write(sendByte)
+			return
+		}
+		w.Write(sendByte)
+		return
+	}
+
+	tasks, err := storage.GetAllTasks(h.DB)
 	if err != nil {
 		sender := map[string]string{"error": err.Error()}
 		sendByte, _ := json.Marshal(sender)
 		w.Write(sendByte)
 		return
 	}
-	tasks = wraper.SortedTasks(tasks)
-
-	result := make(map[string][]models.Task)
+	
 	result["tasks"] = tasks
 	sendByte, err := json.Marshal(result)
 	if err != nil {
