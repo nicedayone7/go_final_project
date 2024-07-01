@@ -6,38 +6,15 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
-
+	
 	"go_final_project/pkg/handlers"
 	"go_final_project/pkg/storage"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-
-	// "github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 )
-
-func FileServer(r chi.Router, path string, root http.FileSystem) {
-	if strings.ContainsAny(path, "{}*") {
-		panic("FileServer does not permit any URL parameters.")
-	}
-
-	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", http.StatusMovedPermanently).ServeHTTP)
-		path += "/"
-	}
-	path += "*"
-
-	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
-		rctx := chi.RouteContext(r.Context())
-		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, http.FileServer(root))
-		fs.ServeHTTP(w, r)
-	})
-}
 
 func getEnv(envFile string) (string, string) {
 	err := godotenv.Load(envFile)
@@ -85,13 +62,13 @@ func authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func handleRequests(DB *sql.DB, port, workDir string) {
+func handleRequests(DB *sql.DB, port string) {
 	h := handlers.New(DB)
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 
-	fs := http.FileServer(http.Dir("web"))
+	
 	r.Post("/api/signin", h.Auth)
 	r.Get("/api/nextdate", h.RequestNextDate)
 	r.With(authMiddleware).Post("/api/task", h.AddTask)
@@ -100,17 +77,13 @@ func handleRequests(DB *sql.DB, port, workDir string) {
 	r.With(authMiddleware).Put("/api/task", h.PutTask)
 	r.With(authMiddleware).Post("/api/task/done", h.TaskDone)
 	r.With(authMiddleware).Delete("/api/task", h.DeleteTask)
-	r.Handle("/web/*", http.StripPrefix("/web/", fs))
-	filesDir := http.Dir(filepath.Join(workDir, "web"))
-	FileServer(r, "/", filesDir)
+	r.Get("/*", http.FileServer(http.Dir("web")).ServeHTTP)
 
 	http.ListenAndServe(":" + port, r)
 }
 
 func main() {
 	port, dbPath := getEnv(".env")
-	workDir, _ := os.Getwd()
-	fmt.Println(dbPath, workDir)
 	if !storage.ExistingStorage(dbPath) {
 		if err := storage.CreateStorage(dbPath); err != nil {
 			log.Fatalf("Dont create db: %s", err)
@@ -125,6 +98,5 @@ func main() {
 		log.Fatalf("Dont connect database: %s", err)
 	}
 
-	handleRequests(db, port, workDir)
-	// r.Use(middleware.Logger)
+	handleRequests(db, port)
 }

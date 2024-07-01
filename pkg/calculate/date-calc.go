@@ -43,34 +43,6 @@ func nextDayCalc(now time.Time, date time.Time, dayRepeat int) (time.Time, error
 	return now, nil
 }
 
-	// var resultDate time.Time
-	// now = time.Date(now.Year(), now.Month(), now.Day(),0,0,0,0, time.UTC)
-	// fmt.Println(now, date, dayRepeat)
-	// if dayRepeat == 1 {
-	// 	if date.After(now) {
-	// 		resultDate = date.AddDate(0, 0, 1)
-	// 	} else {
-	// 		resultDate = now
-	// 	}
-	// 	return resultDate, nil
-	// }
-	// if now.Equal(date) {
-	// 	return date.AddDate(0,0, dayRepeat), nil
-	// }
-
-	// diffDays := now.Sub(date).Hours()/24 // result different now and start task date
-	// remainingDays := int(diffDays)%dayRepeat
-
-	// if remainingDays != 0 {
-	// 	countRepeat := int(diffDays)/dayRepeat
-	// 	dayToNextTask := (countRepeat+1)*dayRepeat
-	// 	resultDate := date.AddDate(0, 0, dayToNextTask)
-	// 	return resultDate, nil
-	// }
-
-	// return resultDate, nil
-
-
 func nextYearCalc(now time.Time, startDate time.Time) time.Time {
 	for {
 		startDate = startDate.AddDate(1, 0, 0)

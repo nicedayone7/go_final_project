@@ -15,6 +15,7 @@ import (
 	"go_final_project/pkg/models"
 	"go_final_project/pkg/normilize"
 	"go_final_project/pkg/storage"
+	"go_final_project/pkg/wrapper"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/joho/godotenv"
@@ -59,17 +60,17 @@ func (h handler) AddTask(w http.ResponseWriter, r *http.Request) {
 
 	task, err := chk.Task(task)
     if err != nil {
-        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        wrapper.SendErrorResponse(w, err.Error(), http.StatusBadRequest)
         return
     }
 
 	id, err := storage.AddTaskStorage(h.DB, task)
     if err != nil {
-        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        wrapper.SendErrorResponse(w, err.Error(), http.StatusBadRequest)
         return
     }
 	
-	sendJSONResponse(w, map[string]interface{}{"id": strconv.Itoa(id)}, http.StatusOK)
+	wrapper.SendJSONResponse(w, map[string]interface{}{"id": strconv.Itoa(id)}, http.StatusOK)
 }
 
 func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
@@ -83,59 +84,33 @@ func (h handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		if dateSearch != "" {
 			tasks, err := storage.SearchTaskToDate(h.DB, dateSearch)
 			if err != nil {
-				sender := map[string]string{"error": err.Error()}
-				sendByte, _ := json.Marshal(sender)
-				w.Write([]byte(sendByte))
+				wrapper.SendErrorResponse(w, err.Error(), http.StatusBadRequest)
 				return
 			}
+
 			result["tasks"] = tasks
-			sendByte, err := json.Marshal(result)
-			if err != nil {
-				sender := map[string]string{"error": err.Error()}
-				sendByte, _ := json.Marshal(sender)
-				w.Write([]byte(sendByte))
-				return
-			}
-			w.Write([]byte(sendByte))
+			wrapper.SendJSONResponse(w, result, http.StatusOK)
 			return
 		}
+
 		tasks, err :=storage.SearchTaskToWord(h.DB, search)
 		if err != nil {
-			sender := map[string]string{"error": err.Error()}
-			sendByte, _ := json.Marshal(sender)
-			w.Write([]byte(sendByte))
+			wrapper.SendErrorResponse(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		result["tasks"] = tasks
-		sendByte, err := json.Marshal(result)
-		if err != nil {
-			sender := map[string]string{"error": err.Error()}
-			sendByte, _ := json.Marshal(sender)
-			w.Write([]byte(sendByte))
-			return
-		}
-		w.Write([]byte(sendByte))
+		wrapper.SendJSONResponse(w, result, http.StatusOK)
 		return
 	}
 
 	tasks, err := storage.GetAllTasks(h.DB)
 	if err != nil {
-		sender := map[string]string{"error": err.Error()}
-		sendByte, _ := json.Marshal(sender)
-		w.Write([]byte(sendByte))
+		wrapper.SendErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	
 	result["tasks"] = tasks
-	sendByte, err := json.Marshal(result)
-	if err != nil {
-		sender := map[string]string{"error": err.Error()}
-		sendByte, _ := json.Marshal(sender)
-		w.Write([]byte(sendByte))
-		return
-	}
-
-	w.Write([]byte(sendByte))
+	wrapper.SendJSONResponse(w, result, http.StatusOK)
 }
 
 func (h handler) GetTaskID(w http.ResponseWriter, r *http.Request) {
@@ -145,28 +120,25 @@ func (h handler) GetTaskID(w http.ResponseWriter, r *http.Request) {
 
     if idParam == "" {
         sender["error"] = "Не указан идентификатор"
-        sendJSONResponse(w, sender, http.StatusBadRequest)
+        wrapper.SendJSONResponse(w, sender, http.StatusBadRequest)
         return
     }
 
     id, err := strconv.Atoi(idParam)
     if err != nil {
         sender["error"] = "Неверный формат идентификатора"
-        sendJSONResponse(w, sender, http.StatusBadRequest)
+        wrapper.SendJSONResponse(w, sender, http.StatusBadRequest)
         return
     }
 
     task, err := storage.GetTaskByID(h.DB, id)
     if err != nil {
         sender["error"] = "Задача не найдена"
-        sendJSONResponse(w, sender, http.StatusNotFound)
+        wrapper.SendJSONResponse(w, sender, http.StatusNotFound)
         return
     }
-	byteSend, err := json.Marshal(task)
-	if err != nil {
-		fmt.Println(task, err)
-	}
-	w.Write(byteSend)
+	
+	wrapper.SendJSONResponse(w, task, http.StatusOK)
 }
 
 func (h handler) PutTask(w http.ResponseWriter, r *http.Request) {
@@ -181,28 +153,28 @@ func (h handler) PutTask(w http.ResponseWriter, r *http.Request) {
 	
 	id, err := strconv.Atoi(task.ID)
 	if err != nil {
-        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        wrapper.SendErrorResponse(w, err.Error(), http.StatusBadRequest)
         return
     }
 
 	_, err = storage.GetTaskByID(h.DB, id)
     if err != nil {
-        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        wrapper.SendErrorResponse(w, err.Error(), http.StatusBadRequest)
         return
     }
 
 	task, err = chk.Task(task)
     if err != nil {
-        sendErrorResponse(w, err.Error(), http.StatusBadRequest)
+        wrapper.SendErrorResponse(w, err.Error(), http.StatusBadRequest)
         return
     }
 
 	if err := storage.UpdateTask(h.DB, task); err != nil {
-		sendErrorResponse(w, "Error update on database "+err.Error(), http.StatusBadRequest)
+		wrapper.SendErrorResponse(w, "Error update on database "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	sendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
+	wrapper.SendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
 }
 
 func (h handler) TaskDone(w http.ResponseWriter, r *http.Request) {
@@ -212,42 +184,42 @@ func (h handler) TaskDone(w http.ResponseWriter, r *http.Request) {
 
     if idParam == "" {
         sender["error"] = "Не указан идентификатор"
-        sendJSONResponse(w, sender, http.StatusBadRequest)
+        wrapper.SendJSONResponse(w, sender, http.StatusBadRequest)
         return
     }
 
     id, err := strconv.Atoi(idParam)
     if err != nil {
         sender["error"] = "Неверный формат идентификатора"
-        sendJSONResponse(w, sender, http.StatusBadRequest)
+        wrapper.SendJSONResponse(w, sender, http.StatusBadRequest)
         return
     }
 
     task, err = storage.GetTaskByID(h.DB, id)
     if err != nil {
         sender["error"] = "Задача не найдена"
-        sendJSONResponse(w, sender, http.StatusNotFound)
+        wrapper.SendJSONResponse(w, sender, http.StatusNotFound)
         return
     }
 
 	if task.Repeat != "" {
 		task.Date, err = calc.NextDate(time.Now(), task.Date, task.Repeat)
 		if err != nil {
-			sendErrorResponse(w, "Error calculate next date " + err.Error(), http.StatusBadRequest)
+			wrapper.SendErrorResponse(w, "Error calculate next date " + err.Error(), http.StatusBadRequest)
 			return
 		}
 		err = storage.UpdateTask(h.DB, task)
 		if err != nil {
-			sendErrorResponse(w, "Error update task in database " + err.Error(), http.StatusBadRequest)
+			wrapper.SendErrorResponse(w, "Error update task in database " + err.Error(), http.StatusBadRequest)
 			return
 		}
 	} else {
 		if err := storage.DeleteTask(h.DB, id); err != nil {
-			sendErrorResponse(w, "Error delete task in database " + err.Error(), http.StatusBadRequest)
+			wrapper.SendErrorResponse(w, "Error delete task in database " + err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
-	sendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
+	wrapper.SendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
 }
 
 
@@ -257,23 +229,23 @@ func (h handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
     if idParam == "" {
         sender["error"] = "Не указан идентификатор"
-        sendJSONResponse(w, sender, http.StatusBadRequest)
+        wrapper.SendJSONResponse(w, sender, http.StatusBadRequest)
         return
     }
 
     id, err := strconv.Atoi(idParam)
     if err != nil {
         sender["error"] = "Неверный формат идентификатора"
-        sendJSONResponse(w, sender, http.StatusBadRequest)
+        wrapper.SendJSONResponse(w, sender, http.StatusBadRequest)
         return
     }
 
 	if err = storage.DeleteTask(h.DB, id); err != nil {
 		sender["error"] = "Error delete DB"
-        sendJSONResponse(w, sender, http.StatusBadRequest)
+        wrapper.SendJSONResponse(w, sender, http.StatusBadRequest)
         return
 	}
-	sendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
+	wrapper.SendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
 }
 
 func (h handler) Auth(w http.ResponseWriter, r *http.Request) {
@@ -289,32 +261,17 @@ func (h handler) Auth(w http.ResponseWriter, r *http.Request) {
 	if originalPass == pass.SendPassword {
 		jwtToken, err := SignedToken(".env")
 		if err != nil {
-			sendJSONResponse(w, map[string]interface{}{ "error": "Неверный пароль"}, http.StatusBadRequest)
+			wrapper.SendJSONResponse(w, map[string]interface{}{ "error": "Неверный пароль"}, http.StatusBadRequest)
 			return
 		}
-		sendJSONResponse(w, map[string]interface{}{"token": jwtToken}, http.StatusAccepted)
+		wrapper.SendJSONResponse(w, map[string]interface{}{"token": jwtToken}, http.StatusAccepted)
 		return
 	}
 	
-	sendJSONResponse(w, map[string]interface{}{ "error": "Неверный пароль"}, http.StatusBadRequest)
-}
-
-func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
-    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-    w.WriteHeader(statusCode)
-    json.NewEncoder(w).Encode(map[string]interface{}{"error": message})
+	wrapper.SendJSONResponse(w, map[string]interface{}{ "error": "Неверный пароль"}, http.StatusBadRequest)
 }
 
 
-func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
-    w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-    w.WriteHeader(statusCode)
-    if err := json.NewEncoder(w).Encode(data); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-		fmt.Println()
-        return
-    }
-}
 
 func SignedToken(pathToEnv string) (string, error) {
 	secret := getEnvSecret(pathToEnv)
