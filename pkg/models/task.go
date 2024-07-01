@@ -12,3 +12,7 @@ type Sender struct {
 	ID string `json:"id"`
 	Err string `json:"err"`
 }
+
+type Password struct {
+	SendPassword string `json:"password"`
+}

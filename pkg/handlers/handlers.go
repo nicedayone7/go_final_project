@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -13,6 +15,9 @@ import (
 	"go_final_project/pkg/models"
 	"go_final_project/pkg/normilize"
 	"go_final_project/pkg/storage"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/joho/godotenv"
 )
 
 const dateFormat = "20060102"
@@ -271,6 +276,29 @@ func (h handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	sendJSONResponse(w, map[string]interface{}{}, http.StatusOK)
 }
 
+func (h handler) Auth(w http.ResponseWriter, r *http.Request) {
+	var pass models.Password
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+
+	if err := decoder.Decode(&pass); err != nil {
+		http.Error(w, "Error decoding JSON "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	originalPass := getEnvPass(".env")
+	if originalPass == pass.SendPassword {
+		jwtToken, err := SignedToken(".env")
+		if err != nil {
+			sendJSONResponse(w, map[string]interface{}{ "error": "Неверный пароль"}, http.StatusBadRequest)
+			return
+		}
+		sendJSONResponse(w, map[string]interface{}{"token": jwtToken}, http.StatusAccepted)
+		return
+	}
+	
+	sendJSONResponse(w, map[string]interface{}{ "error": "Неверный пароль"}, http.StatusBadRequest)
+}
+
 func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
     w.Header().Set("Content-Type", "application/json; charset=UTF-8")
     w.WriteHeader(statusCode)
@@ -286,4 +314,34 @@ func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
 		fmt.Println()
         return
     }
+}
+
+func SignedToken(pathToEnv string) (string, error) {
+	secret := getEnvSecret(pathToEnv)
+	secretStr := []byte(secret)
+	jwtToken := jwt.New(jwt.SigningMethodHS256)
+
+	signedToken, err := jwtToken.SignedString(secretStr)
+	return signedToken, err
+}
+
+
+func getEnvPass(envFile string) string {
+	err := godotenv.Load(envFile)
+	if err != nil {
+		log.Fatalf("Dont load env pass: %s", err)
+	}
+
+	password := os.Getenv("TODO_PASSWORD")
+	return password
+}
+
+func getEnvSecret(envFile string) string {
+	err := godotenv.Load(envFile)
+	if err != nil {
+		log.Fatalf("Dont load env secret: %s", err)
+	}
+
+	password := os.Getenv("TODO_SECRET")
+	return password
 }
