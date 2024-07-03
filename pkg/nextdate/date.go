@@ -1,4 +1,4 @@
-package calculate
+package nextdate
 
 import (
 	"errors"
@@ -8,14 +8,12 @@ import (
 	"go_final_project/pkg/normilize"
 )
 
-const (
-	dateFormat = "20060102"
-)
+const DateFormat = "20060102"
 
 var ruleLettersTask = []string{"d", "y", "w", "m"}
 
 func NextDate(now time.Time, date string, repeat string) (string, error) {
-	startDate, err := time.Parse(dateFormat, date)
+	startDate, err := time.Parse(DateFormat, date)
 	if err != nil {
 		return "", nil
 	}
@@ -37,7 +35,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			return "", err
 		}
 		
-		return nextDateTask.Format(dateFormat), nil
+		return nextDateTask.Format(DateFormat), nil
 
 	case ruleLetter == "y":
 	 	err := normilize.Year(repeat)
@@ -47,7 +45,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 
 		nextYearTask := nextYearCalc(now, startDate)
 		
-		return nextYearTask.Format(dateFormat), nil
+		return nextYearTask.Format(DateFormat), nil
 
 	case ruleLetter == "w":
 		daysWeek, err := normilize.DaysWeek(repeat)
@@ -60,7 +58,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			return "", err
 		}
 		nextWeekTask := now.AddDate(0, 0, addDays)
-		return nextWeekTask.Format(dateFormat), nil
+		return nextWeekTask.Format(DateFormat), nil
 		
 	case ruleLetter == "m":
 		if now.Before(startDate) {
@@ -80,7 +78,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			return nextMonthTask.Format(dateFormat), nil
+			return nextMonthTask.Format(DateFormat), nil
 		}
 	
 		if len(parts) == 3 {
@@ -96,7 +94,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			return nextMonthTask.Format(dateFormat), nil
+			return nextMonthTask.Format(DateFormat), nil
 		}
 
 		return "", err

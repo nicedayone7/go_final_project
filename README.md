@@ -20,7 +20,7 @@
 
 Создать файл .env со следующими переменными окружения:
 TODO_PORT=7540
-TODO_DBFILE="scheduler.db"
+TODO_DBFILE="./scheduler.db"
 TODO_PASSWORD="1"
 TODO_SECRET="practicum"
 

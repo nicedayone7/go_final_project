@@ -1,4 +1,4 @@
-package calculate
+package nextdate
 
 import (
 	"errors"

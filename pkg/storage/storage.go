@@ -3,11 +3,10 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"go_final_project/pkg/models"
 	"log"
 	"os"
 	"path/filepath"
-
-	"go_final_project/pkg/models"
 
 	_ "modernc.org/sqlite"
 )
@@ -24,6 +23,18 @@ comment VARCHAR(1024) NOT NULL,
 repeat VARCHAR(128) NOT NULL
 );`
 )
+
+func StartStorage(dbPath string) error {
+	if !ExistingStorage(dbPath) {
+		if err := CreateStorage(dbPath); err != nil {
+			log.Fatalf("Error create db: %s", err)
+		}
+		if err := CreateTable(dbPath); err != nil {
+			log.Fatalf("Error create table: %s", err)
+		}
+	}
+	return nil
+}
 
 func ExistingStorage(path string) bool {
 	storageFile := filepath.Join(filepath.Dir(path), storageFilename)
@@ -45,12 +56,11 @@ func CreateStorage(storagePath string) error {
 	return nil
 }
 
-func CreateTable(storageFilename string) error {
-	db, err := sql.Open("sqlite", storageFilename)
+func CreateTable(storagePath string) error {
+	db, err := sql.Open("sqlite", storagePath)
 	if err != nil {
 		log.Fatalf("Dont connect to database: %s", err)
 	}
-	defer db.Close()
 
 	if _, err = db.Exec(create); err != nil {
 		log.Fatalf("Dont create table in database: %s", err)
@@ -72,8 +82,8 @@ func Connect(storageFilename string) (*sql.DB, error) {
 	return db, err
 } 
 
-func AddTaskStorage(db *sql.DB,task models.Task) (int, error) {
-	res, err := db.Exec("INSERT INTO scheduler (date, title, comment, repeat) VALUES (:date, :title, :comment, :repeat)",
+func (s *Storage) AddTaskStorage(task models.Task) (int, error) {
+	res, err := s.db.Exec("INSERT INTO scheduler (date, title, comment, repeat) VALUES (:date, :title, :comment, :repeat)",
 						sql.Named("date", task.Date),
 						sql.Named("title", task.Title),
 						sql.Named("comment", task.Comment),
@@ -90,8 +100,8 @@ func AddTaskStorage(db *sql.DB,task models.Task) (int, error) {
 	return int(id), nil
 }
 
-func GetAllTasks(db *sql.DB) ([]models.Task, error) {
-	rows, err := db.Query("SELECT * FROM scheduler ORDER BY date LIMIT :limit;", sql.Named("limit", limit))
+func (s *Storage) GetAllTasks() ([]models.Task, error) {
+	rows, err := s.db.Query("SELECT * FROM scheduler ORDER BY date LIMIT :limit;", sql.Named("limit", limit))
 
 	if err != nil {
 		return nil, err
@@ -110,9 +120,9 @@ func GetAllTasks(db *sql.DB) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func SearchTaskToWord(db *sql.DB, search string) ([]models.Task, error) {
+func (s *Storage) SearchTaskToWord(search string) ([]models.Task, error) {
 	query := "SELECT id, date, title, comment, repeat FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date LIMIT :limit"
-    rows, err := db.Query(query, sql.Named("search", "%"+search+"%"), sql.Named("limit", limit))
+    rows, err := s.db.Query(query, sql.Named("search", "%"+search+"%"), sql.Named("limit", limit))
     if err != nil {
         return nil, err
     }
@@ -135,8 +145,8 @@ func SearchTaskToWord(db *sql.DB, search string) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func SearchTaskToDate(db *sql.DB, dateToSearch string) ([]models.Task, error) {
-	rows, err := db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date LIMIT :limit", sql.Named("date", dateToSearch), sql.Named("limit", limit))
+func (s *Storage) SearchTaskToDate(dateToSearch string) ([]models.Task, error) {
+	rows, err := s.db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date LIMIT :limit", sql.Named("date", dateToSearch), sql.Named("limit", limit))
 	if err != nil {
 		return nil, err
 	}
@@ -158,9 +168,9 @@ func SearchTaskToDate(db *sql.DB, dateToSearch string) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func GetTaskByID(db *sql.DB, id int) (models.Task, error) {
+func (s *Storage) GetTaskByID(id int) (models.Task, error) {
 	var task models.Task 
-	row := db.QueryRow("SELECT * FROM scheduler WHERE id = :id", sql.Named("id", id))
+	row := s.db.QueryRow("SELECT * FROM scheduler WHERE id = :id", sql.Named("id", id))
 	err := row.Scan(&task.ID, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 	if err != nil {
 		return models.Task{}, err
@@ -169,8 +179,8 @@ func GetTaskByID(db *sql.DB, id int) (models.Task, error) {
 	return task, nil
 }
 
-func UpdateTask(db *sql.DB, task models.Task) error {
-	_, err := db.Exec("UPDATE scheduler SET date = :date, title = :title, comment = :comment, repeat = :repeat WHERE id = :id",
+func (s *Storage) UpdateTask(task models.Task) error {
+	_, err := s.db.Exec("UPDATE scheduler SET date = :date, title = :title, comment = :comment, repeat = :repeat WHERE id = :id",
 	sql.Named("date", task.Date),
 	sql.Named("title", task.Title),
 	sql.Named("comment", task.Comment),
@@ -183,9 +193,8 @@ func UpdateTask(db *sql.DB, task models.Task) error {
 	return nil
 }
 
-func DeleteTask(db *sql.DB, id int) error {
-	fmt.Println("in del:", id)
-	_, err := db.Exec("DELETE FROM scheduler WHERE id = :id", sql.Named("id", id))
+func (s *Storage) DeleteTask(id int) error {
+	_, err := s.db.Exec("DELETE FROM scheduler WHERE id = :id", sql.Named("id", id))
 	if err != nil {
 		return err
 	}
