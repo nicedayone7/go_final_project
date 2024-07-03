@@ -1,16 +1,14 @@
-FROM golang:1.22
+FROM golang:1.22.4
 
 WORKDIR /app
 
-ENV TODO_PORT="7540" TODO_DBDILE="scheduler.db" TODO_PASSWORD="password" TODO_SECRET="practicum"
-
-COPY go.mod go.sum ./
-
-RUN go mod download
+ENV TODO_PORT="7540" TODO_DBFILE="scheduler.db" TODO_PASSWORD="password" TODO_SECRET="practicum" CGO_ENABLED="0" GOOS="linux" GOARCH="amd64" 
 
 COPY . ./
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /my_app_task
+RUN go mod download
+
+RUN go build -o /my_app_task
 
 EXPOSE 7540
 

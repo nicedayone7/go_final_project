@@ -16,17 +16,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func getEnv(envFile string) (string, string) {
-	err := godotenv.Load(envFile)
-	if err != nil {
-		log.Fatalf("Dont load env: %s", err)
-	}
-
-	todoPort := os.Getenv("TODO_PORT")
-	dbPath := os.Getenv("TODO_DBFILE")
-
-	return todoPort, dbPath
-}
+const(
+	envFile = ".env"
+)
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +75,12 @@ func handleRequests(DB *sql.DB, port string) {
 }
 
 func main() {
-	port, dbPath := getEnv(".env")
+	err := godotenv.Load(envFile)
+	if err != nil {
+		log.Fatalf("Dont load env: %s", err)
+	}
+	port := os.Getenv("TODO_PORT") 
+	dbPath := os.Getenv("TODO_DBFILE")
 	if !storage.ExistingStorage(dbPath) {
 		if err := storage.CreateStorage(dbPath); err != nil {
 			log.Fatalf("Dont create db: %s", err)

@@ -32,5 +32,5 @@ var Search = true
 var Token = ``
 
 Для сборки докер нужно выполнить следующие команды
-docker build --tag task-app:v1 .
-docker run -d task-app:v1
+docker build --tag task-app:v1.0.3 .
+docker run -d -p 8080:7540  task-app:v1.0.3

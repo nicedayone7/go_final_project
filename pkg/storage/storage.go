@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	"go_final_project/pkg/models"
 
@@ -15,6 +14,7 @@ import (
 
 const (
 	storageFilename        = "scheduler.db"
+	limit = "10"
 	create          string = `
 CREATE TABLE IF NOT EXISTS scheduler (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,11 +64,6 @@ func Connect(storageFilename string) (*sql.DB, error) {
         return nil, err
     }
 
-	db.SetMaxIdleConns(2)
-	db.SetMaxOpenConns(5)
-	db.SetConnMaxIdleTime(time.Minute * 5)
-	db.SetConnMaxLifetime(time.Hour)
-
 	err = db.Ping()
     if err != nil {
         return nil, err
@@ -96,7 +91,7 @@ func AddTaskStorage(db *sql.DB,task models.Task) (int, error) {
 }
 
 func GetAllTasks(db *sql.DB) ([]models.Task, error) {
-	rows, err := db.Query("SELECT * FROM scheduler ORDER BY date LIMIT :limit;", sql.Named("limit", "10"))
+	rows, err := db.Query("SELECT * FROM scheduler ORDER BY date LIMIT :limit;", sql.Named("limit", limit))
 
 	if err != nil {
 		return nil, err
@@ -116,8 +111,8 @@ func GetAllTasks(db *sql.DB) ([]models.Task, error) {
 }
 
 func SearchTaskToWord(db *sql.DB, search string) ([]models.Task, error) {
-	query := "SELECT * FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date LIMIT :limit"
-    rows, err := db.Query(query, sql.Named("search", "%"+search+"%"), sql.Named("limit", "10"))
+	query := "SELECT id, date, title, comment, repeat FROM scheduler WHERE title LIKE :search OR comment LIKE :search ORDER BY date LIMIT :limit"
+    rows, err := db.Query(query, sql.Named("search", "%"+search+"%"), sql.Named("limit", limit))
     if err != nil {
         return nil, err
     }
@@ -132,11 +127,16 @@ func SearchTaskToWord(db *sql.DB, search string) ([]models.Task, error) {
 		}
 		tasks = append(tasks, task)
 	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return tasks, nil
 }
 
 func SearchTaskToDate(db *sql.DB, dateToSearch string) ([]models.Task, error) {
-	rows, err := db.Query("SELECT * FROM scheduler WHERE date = :date LIMIT :limit", sql.Named("date", dateToSearch), sql.Named("limit", "10"))
+	rows, err := db.Query("SELECT id, date, title, comment, repeat FROM scheduler WHERE date = :date LIMIT :limit", sql.Named("date", dateToSearch), sql.Named("limit", limit))
 	if err != nil {
 		return nil, err
 	}
@@ -149,6 +149,10 @@ func SearchTaskToDate(db *sql.DB, dateToSearch string) ([]models.Task, error) {
 			return nil, err
 		} 
 		tasks = append(tasks, task)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return tasks, nil
@@ -185,6 +189,6 @@ func DeleteTask(db *sql.DB, id int) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("del done:", id)
+	
 	return nil
 }
