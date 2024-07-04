@@ -4,7 +4,7 @@ WORKDIR /app
 
 ENV TODO_PORT="7540" TODO_DBFILE="scheduler.db" TODO_PASSWORD="password" TODO_SECRET="practicum" CGO_ENABLED="0" GOOS="linux" GOARCH="amd64" 
 
-COPY . ./
+COPY . .
 
 RUN go mod download
 
