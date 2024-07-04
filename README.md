@@ -26,7 +26,7 @@ TODO_SECRET="practicum"
 
 Параметры для tests/settings.go
 var Port = 7540
-var DBFile = "../scheduler.db"
+var DBFile = "./scheduler.db"
 var FullNextDate = true
 var Search = true
 var Token = ``
