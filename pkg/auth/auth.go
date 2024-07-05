@@ -9,10 +9,9 @@ import (
 )
 
 func AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pass := os.Getenv("TODO_PASSWORD")
-		secret := os.Getenv("TODO_SECRET")
-		
+	pass := os.Getenv("TODO_PASSWORD")
+	secret := os.Getenv("TODO_SECRET")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {		
 		if len(pass) > 0 {
 			var jwtStr string
 			cookieToken, err := r.Cookie("token")
